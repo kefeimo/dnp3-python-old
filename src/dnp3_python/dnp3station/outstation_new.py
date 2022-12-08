@@ -9,6 +9,7 @@ from typing import Union, Type
 from .station_utils import master_to_outstation_command_parser
 from .station_utils import OutstationCmdType, MasterCmdType
 # from .outstation_utils import MeasurementType
+from .station_utils import DBHandler
 
 LOG_LEVELS = opendnp3.levels.NORMAL | opendnp3.levels.ALL_COMMS
 LOCAL_IP = "0.0.0.0"
@@ -55,6 +56,7 @@ class MyOutStationNew(opendnp3.IOutstationApplication):
         """
 
     outstation = None
+    db_handler = None
 
     def __init__(self,
                  masterstation_ip_str: str = "0.0.0.0",
@@ -151,6 +153,19 @@ class MyOutStationNew(opendnp3.IOutstationApplication):
 
         # Put the Outstation singleton in OutstationApplication so that it can be used to send updates to the Master.
         MyOutStationNew.set_outstation(self.outstation)  # TODO: change MyOutStationNew to cls
+
+        self.db_handler = DBHandler(stack_config=self.stack_config)
+        MyOutStationNew.set_db_handler(self.db_handler)
+
+    @classmethod
+    def set_db_handler(cls, db_handler):
+        """
+            Set the singleton instance of IOutstation, as returned from the channel's AddOutstation call.
+
+            Making IOutstation available as a singleton allows other classes (e.g. the command-line UI)
+            to send commands to it -- see apply_update().
+        """
+        cls.db_handler = db_handler
 
 
     # @staticmethod
@@ -304,6 +319,8 @@ class MyOutStationNew(opendnp3.IOutstationApplication):
         # update = builder.Build()
         update = asiodnp3.UpdateBuilder().Update(measurement, index).Build()
         cls.get_outstation().Apply(update)
+
+        cls.db_handler.process(measurement, index)
 
     def __del__(self):
         try:

@@ -38,6 +38,11 @@ MasterCmdType = Union[opendnp3.AnalogOutputDouble64,
                       opendnp3.AnalogOutputInt16,
                       opendnp3.ControlRelayOutputBlock]
 
+OutstationCmdType = Union[opendnp3.Analog,
+                          opendnp3.AnalogOutputStatus,
+                          opendnp3.Binary,
+                          opendnp3.BinaryOutputStatus]
+
 
 # TODO: add validating connection logic
 # TODO: add validating configuration logic
@@ -149,6 +154,9 @@ class SOEHandler(opendnp3.ISOEHandler):
         info_gv: GroupVariation = info.gv
         visitor_ind_val: List[Tuple[int, DbPointVal]] = visitor.index_and_value
 
+        # _log.info("======== SOEHandler.Process")
+        # _log.info(f"info_gv {info_gv}")
+        # _log.info(f"visitor_ind_val {visitor_ind_val}")
         self._post_process(info_gv=info_gv, visitor_ind_val=visitor_ind_val)
 
     def _post_process(self, info_gv: GroupVariation, visitor_ind_val: List[Tuple[int, DbPointVal]]):
@@ -243,26 +251,6 @@ def parsing_gvid_to_gvcls(gvid: GroupVariationID) -> GroupVariation:
         assert gv_cls is not None
     except ValueError as e:
         _log.warning(f"Group{group}Var{variation} is not valid opendnp3.GroupVariation")
-    # if group == 30 and variation == 6:
-    #     gv_cls = GroupVariation.Group30Var6
-    # elif group == 30 and variation == 1:
-    #     gv_cls = GroupVariation.Group30Var1
-    # elif group == 1 and variation == 2:
-    #     gv_cls = GroupVariation.Group1Var2
-    # elif group == 40 and variation == 4:
-    #     gv_cls = GroupVariation.Group40Var4
-    # elif group == 4 and variation == 1:
-    #     gv_cls = GroupVariation.Group40Var1
-    # elif group == 10 and variation == 2:
-    #     gv_cls = GroupVariation.Group10Var2
-    # elif group == 32 and variation == 4:
-    #     gv_cls = GroupVariation.Group32Var4
-    # elif group == 2 and variation == 2:
-    #     gv_cls = GroupVariation.Group2Var2
-    # elif group == 42 and variation == 8:
-    #     gv_cls = GroupVariation.Group42Var8
-    # elif group == 11 and variation == 2:
-    #     gv_cls = GroupVariation.Group11Var2
 
     return gv_cls
 
@@ -305,8 +293,8 @@ def parsing_gv_to_mastercmdtype(group: int, variation: int, val_to_set: DbPointV
 
 
 # alias
-OutstationCmdType = Union[opendnp3.Analog, opendnp3.Binary, opendnp3.AnalogOutputStatus,
-                          opendnp3.BinaryOutputStatus]  # based on asiodnp3.UpdateBuilder.Update(**args)
+# OutstationCmdType = Union[opendnp3.Analog, opendnp3.Binary, opendnp3.AnalogOutputStatus,
+#                           opendnp3.BinaryOutputStatus]  # based on asiodnp3.UpdateBuilder.Update(**args)
 # MasterCmdType = Union[opendnp3.AnalogOutputDouble64,
 #                       opendnp3.AnalogOutputFloat32,
 #                       opendnp3.AnalogOutputInt32,
@@ -340,3 +328,45 @@ def master_to_outstation_command_parser(master_cmd: MasterCmdType) -> Outstation
         return opendnp3.BinaryOutputStatus(value=bi_value)
     else:
         raise ValueError(f"master_cmd {master_cmd} with type {type(master_cmd)} is not a valid command.")
+
+
+class DBHandler:
+    """
+        Work as an auxiliary database for outstation (Mimic SOEHAndler for master-station)
+    """
+
+    def __init__(self, stack_config=asiodnp3.OutstationStackConfig(opendnp3.DatabaseSizes.AllTypes(10)),
+                 dbhandler_log_level=logging.INFO, *args, **kwargs):
+        _log.setLevel(dbhandler_log_level)  # TODO: refactor to its own module (right now thi si global)
+        self.stack_config = stack_config
+        self.db: dict = self.config_db(stack_config)
+
+    @ staticmethod
+    def config_db(stack_config):
+        db = {}
+        for number, gv_name in zip([stack_config.dbConfig.sizes.numBinary,
+                                    stack_config.dbConfig.sizes.numBinaryOutputStatus,
+                                    stack_config.dbConfig.sizes.numAnalog,
+                                    stack_config.dbConfig.sizes.numAnalogOutputStatus],
+                                   ["Binary", "BinaryOutputStatus",
+                                    "Analog", "AnalogOutputStatus"]):
+            val_body = dict((n, None) for n in range(number))
+            db[gv_name] = val_body
+
+        return db
+
+    @property
+    def _db(self) -> dict:
+        return self._db
+
+    def process(self, command, index):
+        pass
+        # _log.info(f"command {command}")
+        # _log.info(f"index {index}")
+        update_body: dict = {index: command.value}
+        if self.db.get(command.__class__.__name__):
+            self.db[command.__class__.__name__].update(update_body)
+        else:
+            self.db[command.__class__.__name__] = update_body
+        # _log.info(f"========= self.db {self.db}")
+
