@@ -19,7 +19,7 @@ _log.setLevel(logging.DEBUG)
 def input_prompt(display_str=None) -> str:
     if display_str is None:
         display_str = """
-======== Your Input Here: ========
+======== Your Input Here: ==(outstation)======
 """
     return input(display_str)
 
@@ -27,27 +27,31 @@ def input_prompt(display_str=None) -> str:
 def setup_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 
     # Adding optional argument
-    parser.add_argument("-mip", "--master-ip", action="store", default="0.0.0.0", type=str,
-                        metavar="<IP>")
-    parser.add_argument("-oip", "--outstation-ip", action="store", default="127.0.0.1", type=str,
-                        metavar="<IP>")
+    # parser.add_argument("-mip", "--master-ip", action="store", default="0.0.0.0", type=str,
+    #                     metavar="<IP>")
+    parser.add_argument("-oip", "--outstation-ip", action="store", default="0.0.0.0", type=str,
+                        metavar="<IP>",
+                        help="outstation ip, default: 0.0.0.0")
     parser.add_argument("-p", "--port", action="store", default=20000, type=int,
-                        metavar="<PORT>")
+                        metavar="<PORT>",
+                        help="port, default: 20000")
     parser.add_argument("-mid", "--master-id", action="store", default=2, type=int,
-                        metavar="<ID>")
+                        metavar="<ID>",
+                        help="master id, default: 2")
     parser.add_argument("-oid", "--outstation-id", action="store", default=1, type=int,
-                        metavar="<ID>")
+                        metavar="<ID>",
+                        help="master id, default: 1")
 
     return parser
 
 
 def print_menu():
     welcome_str = """\
-========================= MENU ==================================
-<ai> - set analog-input point value
-<ao> - set analog-output point value
-<bi> - set binary-input point value
-<bo> - set binary-output point value
+==== Outstation Operation MENU ==================================
+<ai> - update analog-input point value (for local reading)
+<ao> - update analog-output point value (for local control)
+<bi> - update binary-input point value (for local reading)
+<bo> - update binary-output point value (for local control)
 <dd> - display database
 <dc> - display configuration
 =================================================================\
@@ -73,7 +77,7 @@ def main(parser=None, *args, **kwargs):
     print(__name__, d_args)
 
     outstation_application = MyOutStationNew(
-        masterstation_ip_str=args.master_ip,
+        # masterstation_ip_str=args.master_ip,
         outstation_ip_str=args.outstation_ip,
         port=args.port,
         masterstation_id_int=args.master_id,
