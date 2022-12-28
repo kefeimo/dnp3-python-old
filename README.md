@@ -95,6 +95,8 @@ dnp3demo Sub-command:
     demo                run dnp3 demo with default master and outstation
 ```
 
+For more details about the `dnp3demo` module, please ref to "dnp3demo-module.md" in "/docs".
+
 ## For Developers
 
 pydnp3 is a thin wrapper around opendnp3 classes. Documentation for the opendnp3
